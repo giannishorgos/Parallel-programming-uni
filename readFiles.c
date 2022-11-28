@@ -2,28 +2,29 @@
 #include <stdlib.h>
 #include "mmio.h"
 
-
-
-void printGraph(MM_typecode matcode, int M, int N, int nz, int** graph) {
+void printGraph(MM_typecode matcode, int M, int N, int nz, int **graph)
+{
     /************************/
     /* print out matrix     */
     /************************/
     mm_write_banner(stdout, matcode);
     mm_write_mtx_crd_size(stdout, M, N, nz);
-    for (int i=0; i<nz; i++)
+    for (int i = 0; i < nz; i++)
         fprintf(stdout, "%d\t %d\t %d\n", graph[0][i], graph[1][i], graph[2][i]);
 }
 
-int getLength(FILE* f) {
+int getLength(FILE *f)
+{
     int M, N, length;
     /* find out size of sparse matrix */
     if (mm_read_mtx_crd_size(f, &M, &N, &length) != 0)
         exit(1);
-    
+
     return length;
 }
 
-int** readFile(FILE* f, MM_typecode matcode) {
+int **readFile(FILE *f, MM_typecode matcode)
+{
     /*
     DESC
     ----------
@@ -41,64 +42,58 @@ int** readFile(FILE* f, MM_typecode matcode) {
     at array[2] -> weights (for us all the weights are equal to 1)
     */
 
-    int M, N, nz;   
+    int M, N, nz;
     int i, *I, *J, *val;
     int ret_code;
 
-        
     /* find out size of sparse matrix */
     if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0)
         exit(1);
 
-
     /* reserve memory for matrices */
-    I = (int*) malloc(nz * sizeof(int));
-    J = (int*) malloc(nz * sizeof(int));
-    val = (int*) malloc(nz * sizeof(int));
-
-    /* populate values array with 1 because we don't care about weights */
-    for(int i = 0; i < nz; i++) {
-        val[i] = 1;
-    }
-
+    I = (int *)malloc(nz * sizeof(int));
+    J = (int *)malloc(nz * sizeof(int));
+    val = (int *)malloc(nz * sizeof(int));
 
     for (int i = 0; i < nz; i++)
     {
-        fscanf(f, "%d %d\n", &I[i], &J[i]); /* don't read values (or weights) */
-        I[i]--;  /* adjust from 1-based to 0-based */
-        J[i]--;  /* adjust from 1-based to 0-based */
+        fscanf(f, "%d %d %d\n", &I[i], &J[i], &val[i]);
+        I[i]--; /* adjust from 1-based to 0-based */
+        J[i]--; /* adjust from 1-based to 0-based */
     }
 
-    if (f !=stdin) fclose(f);
+    /* populate values array with 1 because we don't care about weights */
+    for (int i = 0; i < nz; i++)
+    {
+        val[i] = 1;
+    }
 
-    int** graph = (int**) malloc(3 * sizeof(int*));
+    if (f != stdin)
+        fclose(f);
+
+    int **graph = (int **)malloc(3 * sizeof(int *));
     graph[0] = I;
     graph[1] = J;
     graph[2] = val;
 
-    // printGraph(matcode, M, N, nz, graph);
-    mm_write_banner(stdout, matcode);
-    mm_write_mtx_crd_size(stdout, M, N, nz);
-    for (int i=0; i<nz; i++)
-        fprintf(stdout, "%d\t %d\t %d\n", graph[0][i], graph[1][i], graph[2][i]);
+    printGraph(matcode, M, N, nz, graph);
 
     return graph;
 }
 
-
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
     MM_typecode matcode;
     FILE *f;
 
-
     if (argc < 2)
-	{
-		fprintf(stderr, "Usage: %s [martix-market-filename]\n", argv[0]);
-		exit(1);
-	}
-    else    
-    { 
-        if ((f = fopen(argv[1], "r")) == NULL) 
+    {
+        fprintf(stderr, "Usage: %s [martix-market-filename]\n", argv[0]);
+        exit(1);
+    }
+    else
+    {
+        if ((f = fopen(argv[1], "r")) == NULL)
             exit(1);
     }
 
@@ -108,7 +103,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    int** g = readFile(f, matcode);
+    int **g = readFile(f, matcode);
     free(g[0]);
     free(g[1]);
     free(g[2]);
